@@ -4,7 +4,6 @@ function SensorCalibrator
 close all; clear;
 % clear all
 % reset all ports; otherwise might be unable to connect to port
-instrreset;
 
 % create our clean up object for interrupt
 cleanupObj = onCleanup(@cleanMeUp);
@@ -31,8 +30,17 @@ dataLength = 1;
 % program)
 dataPointNum = 5;
 
-% Serial Object Setup
-serialPortName = 'COM5'; % on Windows would be COM#, change it according to your system
+
+ports = serialportlist;
+num_ports = length(ports);
+for k = 1:num_ports
+    fprintf('%d. %s\n', k, ports(k))
+end
+
+% Ask the user to input the COM port number
+port_num = input('Please enter the number of the COM port you want to use: ');
+device = ports(port_num);
+
 
 % Make sure it matches the baud rate on your board's output
 baudRate = 115200;
@@ -83,7 +91,7 @@ reading = [];
 % s = serial(serialPortName,'BaudRate',115200);
 % Create a serial port object
 
-s = serialport(serialPortName,baudRate);
+s = serialport(device,baudRate);
 
 % for storing data sequentially in rawData
 rawData = [];
