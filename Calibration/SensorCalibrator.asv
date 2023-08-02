@@ -16,10 +16,16 @@ cleanupObj = onCleanup(@cleanMeUp);
 % data present.
 % MUST CHANGE NAME OR DELETE PREVIOUS FILE IF DIFFERENT NUMBER OF SENSORS REPORT DATA
 
-% Name the file (will be used in data logging and graph titles)
-testDevice = 'PT'; % Use 'FL' if for flow meter, 'PT' for pressure transducer
-date = 'Aug01';
-iteration = 1; % in case you want multiple calibration runs for the same device on same day
+% Name the sensors (will be used in data logging and graph titles)
+testDevice = 'FL'; % Use 'FL' if for flow meter
+
+date
+
+fileName = sprintf('%sCalibration_Aug01_newnew',testDevice);
+
+% NAME THE FOLDER YOU WANT THE TEST TO BE IN
+folderName = 'Aug01PTNum_Newnew';
+
 
 % How many sensors are you reporting each time? (match with Arduino output)
 dataLength = 1;
@@ -28,13 +34,6 @@ dataLength = 1;
 % program)
 dataPointNum = 5;
 
-
-% you don't have to change fileName and folderName, as they are automated, unless you want
-% to add anything else to it
-fileName = sprintf('%s_%s_Calibration_%d',testDevice,date,iteration);
-
-% NAME THE FOLDER YOU WANT THE TEST TO BE IN
-folderName = sprintf('%s_%s_Calibration',date,testDevice);
 
 
 %% Automated Process Starts here
@@ -90,12 +89,24 @@ try
     reading = [];
 
 
+    % set up serial object
+    %serialPortName = '/dev/cu.SLAB_USBtoUART'
+    %  serialPortName = 'COM14'; % on Windows would be COM#
+    %s = serialport(serialPortName,115200);
+    % s = serial(serialPortName,'BaudRate',115200);
+    % Create a serial port object
+
+    % for storing data sequentially in rawData
     rawData = [];
     i = 1;
+
+    % open serial port and read data
+    serialPortOpened = 1;
 
     try
         s = serialport(device,baudRate);
     catch
+        serialPortOpened = 0;
         availablePorts = convertStringsToChars(serialportlist("all"));
         [~,numOfPorts] = size(availablePorts);
         portNames = [];
@@ -108,7 +119,7 @@ try
         end
 
         ME = MException('MyComponent:fopenFailed',['Failed to open the serial ' ...
-            'port, check the serial port name, close up Arduino''s serial monitor, or reconnect the device. Available ports: ' portNames]);
+            'port, check the serial port name, or close up Arduino''s serial monitor. Available ports: ' portNames]);
         throw(ME)
     end
     if testDevice == "PT "
@@ -119,6 +130,8 @@ try
     flush(s);
 
     timeout_duration = 5;
+    if serialPortOpened == 1
+
         tic;  % start timer
         while toc < timeout_duration
             data = str2num(readline(s));
@@ -139,21 +152,20 @@ try
             length(data);
 
             if length(data) ~= dataLength
-                warning('Number of input expected: %d; detected: %d',dataLength, length(data));
+                warning(sprintf('Number of input expected: %d; detected: %d',dataLength, length(data)));
                 continue;
             end
 
             rawData(i,:) = data;
 
-
-            if i <= dataPointNum
-                i = i+1;
-            else 
-               rawData(i-dataPointNum,:) = [];
+            if i > dataPointNum
+                rawData(i-dataPointNum,:) = [];
             end
-            rawData
+
+            i = i+1;
 
         end
+    end
 
 catch ME
          errorOccurred = true; % Declare errorOccurred in the same scope
@@ -201,8 +213,8 @@ end
                     % Convert warning to error
                     warning('error', 'MATLAB:polyfit:RepeatedPointsOrRescale');
                     coefficients = polyfit(X,Y,1)';
-                    a = [a;coefficients(1)];
-                    b = [b;coefficients(2)];
+                    a = [a;coefficients(1)]
+                    b = [b;coefficients(2)]
                     endsol = [endsol,coefficients];
                 catch
                     error(sprintf("cannot establish linear best fit with the input you gave input. "))
@@ -258,7 +270,13 @@ end
             hold off
 
         end
+
+
+
+
     end
+
+
 
 end
 

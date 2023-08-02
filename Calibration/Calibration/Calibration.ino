@@ -2,6 +2,8 @@
 #include <Wire.h>
 #include <Adafruit_INA219.h>
 
+// 0 if PT, 1 if flow sensor.
+volatile int calibrationCase = 0;
 
 // MODIFY HERE ACCORDING TO CALIBRATION VALUES
 // reset them to a = 1, b = 0 if recalibrate!
@@ -10,10 +12,8 @@ volatile float PT_b = 0;
 volatile float FL_a = 1;
 volatile float FL_b = 0;
 
-// 0 if PT, 1 if flow sensor.
-#define CALIBRATION_CASE 0
 
-
+volatile int timerInterval = 10;
 Adafruit_INA219 ina219;
 #define INTERRUPT_PIN 14
 #define PRESSURE_PIN 27
@@ -68,83 +68,89 @@ void setup() {
   Wire.begin(21, 22);
   Serial.begin(115200);
 
+
   // Set up PWM on PWM_PIN
   pinMode(PWM_PIN, OUTPUT);
   ledcSetup(PWM_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
   ledcAttachPin(PWM_PIN, PWM_CHANNEL);
-  ledcWrite(PWM_CHANNEL, 0);
+  ledcWrite(PWM_CHANNEL, 255);
 
-  // lcd.begin(16,2);
-  // lcd.begin(16, 2);
-  lcd.init();
-  lcd.backlight();
+  if (calibrationCase == 1) {
+    timerInterval = 1000;
 
-  lcd2.init();
-  lcd2.backlight();
+  }
+
+  // // lcd.begin(16,2);
+  // // lcd.begin(16, 2);
+  // lcd.init();
+  // lcd.backlight();
+
+  // lcd2.init();
+  // lcd2.backlight();
 
 
-  lcd.clear();
-  lcd2.clear();
+  // lcd.clear();
+  // lcd2.clear();
 
-  lcd.setCursor(1, 0);
-  // lcd.print("Hello, world!");
-  lcd.print("Air Supply");
-  lcd.setCursor(3, 1);
-  lcd.print("Screen 1");
+  // lcd.setCursor(1, 0);
+  // // lcd.print("Hello, world!");
+  // lcd.print("Air Supply");
+  // lcd.setCursor(3, 1);
+  // lcd.print("Screen 1");
 
-  lcd2.setCursor(1, 0);
-  lcd2.print("Air Supply");
-  lcd2.setCursor(3, 1);
-  lcd2.print("Screen 2");
-  delay(1000);
+  // lcd2.setCursor(1, 0);
+  // lcd2.print("Air Supply");
+  // lcd2.setCursor(3, 1);
+  // lcd2.print("Screen 2");
+  // delay(1000);
 
-  lcd.clear();
-  lcd2.clear();
+  // lcd.clear();
+  // lcd2.clear();
 }
 
 void loop() {
   unsigned long currentTime = millis();
 
   // If 1 second has passed since the last reset
-  if (currentTime - lastResetTime >= 1000) {
+  if (currentTime - lastResetTime >= timerInterval) {
     lastResetTime = currentTime;
 
-    // Temporarily disable interrupts while reading and resetting interruptCounter
-    noInterrupts();
-    float count = interruptCounter;
-    interruptCounter = 0;
-    unsigned long timeSinceLastPulse = currentTime - lastInterruptTime;
-    interrupts();
-
-    // Read and print the pressure transducer value
+    if (calibrationCase == 0) {
+      timerInterval = 10;
+         // Read and print the pressure transducer value
     float pressureValue = analogRead(PRESSURE_PIN) * PT_a + PT_b;
     // Read and calculate flow rate
-    float flowRate = count * FL_a + FL_b;
-    // get current meter value
-    float current_mA = ina219.getCurrent_mA();
+ 
 
-    if (CALIBRATION_CASE == 0) {
       Serial.println(pressureValue);
-    } else if (CALIBRATION_CASE == 1) {
-      Serial.println(count);
+    } else if (calibrationCase == 1) {
+      timerInterval = 1000;
+
+      noInterrupts();
+     // get current meter value
+      float count = interruptCounter;
+      interruptCounter = 0;
+      unsigned long timeSinceLastPulse = currentTime - lastInterruptTime;
+      interrupts();
+      
+      float flowRate = count * FL_a + FL_b;
+
+      Serial.println(flowRate);
     }
 
-    lcdPrint(current_mA, pressureValue, flowRate);
+    // lcdPrint(current_mA, pressureValue, flowRate);
 
   } else {
-    if (Serial.available() > 0) {
-      String inputString = Serial.readStringUntil('\n');
-      inputString.trim();
-      int inputInt = inputString.toInt();
+   if (Serial.available() > 0) {
+     String inputString = Serial.readStringUntil('\n');
+     inputString.trim();
+     int inputInt = inputString.toInt();
 
-      if (inputInt >= 0 && inputInt <= 255) {
-        ledcWrite(PWM_CHANNEL, inputInt);
-        // Serial.print("Updated duty cycle: ");
-        // Serial.println(inputInt);
-      } 
-      // else {
-      //   // Serial.println("Invalid input! Please enter a number between 0 and 255.");
-      // }
-    }
+     if (inputInt == 0) {
+       calibrationCase = 0;
+     } else if (inputInt == 1) {
+       calibrationCase = 1;
+     }
+   }
   }
 }

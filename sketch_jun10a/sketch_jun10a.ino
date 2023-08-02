@@ -12,7 +12,8 @@ Adafruit_INA219 ina219;
 #define PWM_RESOLUTION 8  // Resolution for PWM signal in bits
 #define PWM_CHANNEL 0  // PWM channel
 
-
+#define a 0.0232
+#define b -10.9232
 volatile unsigned long interruptCounter = 0;
 unsigned long lastResetTime = 0;
 volatile unsigned long lastInterruptTime = 0;
@@ -90,7 +91,7 @@ void loop() {
     interrupts();
 
      // Read and print the pressure transducer value
-    int pressureValue = analogRead(PRESSURE_PIN);
+    double pressureValue = analogRead(PRESSURE_PIN)*a+b;
     Serial.print("Pressure transducer value: ");
     Serial.println(pressureValue);
 
