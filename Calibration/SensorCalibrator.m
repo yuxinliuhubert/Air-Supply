@@ -161,12 +161,9 @@ catch ME
    
 end
     function cleanMeUp()
-        if exist('errorOccurred', 'var') && errorOccurred
+        if exist('errorOccurred', 'var') && errorOccurred %#ok<MOCUP> 
 
         else
-     
-            %             instrreset;
-
             % saves data to file (or could save to workspace)
             fprintf('saving test data as %s.xls\n',fileName)
 
@@ -181,8 +178,6 @@ end
                 fprintf("folder already exists\n")
                 addpath(folderName);
             end
-
-
             % calculate mean values
 
             for n = 1:dataLength
@@ -217,7 +212,6 @@ end
 
 
             end
-
 
             finalArray = [[a',NaN];[b',NaN];processArray];
 
