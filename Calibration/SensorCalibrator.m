@@ -162,7 +162,7 @@ catch ME
 end
     function cleanMeUp()
         if exist('errorOccurred', 'var') && errorOccurred %#ok<MOCUP> 
-
+            error("The program quit NOT because of user actions. Please check code");
         else
             % saves data to file (or could save to workspace)
             fprintf('saving test data as %s.xls\n',fileName)
